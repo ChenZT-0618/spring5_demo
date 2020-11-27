@@ -6,12 +6,49 @@
     <!--配置User对象-->
     <bean id="user" class="com.atguigu.spring5.User"/>
 
-    <bean id="book" class="com.atguigu.spring5.Book" p:bname="cnd" p:bauthor="hhh">
+    <bean id="book" class="com.atguigu.spring5.Book">
         <!--使用有参构造方法进行属性注入-->
         <constructor-arg name="bname" value="abc"/>
         <constructor-arg name="bauthor" value="china"/>
-        <!--    &lt;!&ndash;使用set方法进行属性注入，这个会覆盖有参构造的值&ndash;&gt;
-            <property name="bname" value="高等数学"/>
-            <property name="bauthor" value="高等教育出版社"/>-->
+        <!--使用set方法进行属性注入，这个会覆盖有参构造的值-->
+        <property name="bname">
+            <value><![CDATA[《高等数学》]]></value>
+        </property>
+        <property name="bauthor" >
+            <null/>
+        </property>
     </bean>
+
+    <!-- 外部bean-->
+    <!-- 创建service和dao对象，接口不能作为对象，需要找它的实现类 -->
+    <bean id="UserDaoImpl" class="com.atguigu.spring5.outsidebean.UserDaoImpl"/>
+    <bean id="userService" class="com.atguigu.spring5.outsidebean.UserService">
+        <!-- 注入dao对象
+            name：service类中的属性名称
+            ref：创建userDao对象的bean标签的ID值
+        -->
+        <property name="userDao" ref="UserDaoImpl"/>
+    </bean>
+
+    <!-- 内部bean-->
+    <bean id="emp" class="com.atguigu.spring5.insidebean.Emp">
+        <property name="ename" value="lucy"/>
+        <property name="gender" value="女"/>
+        <property name="dept">
+            <!-- name和id没有特别的联系-->
+            <bean id="dept" class="com.atguigu.spring5.insidebean.Dept">
+                <property name="dname" value="安保部"/>
+            </bean>
+        </property>
+    </bean>
+    <!-- 级联赋值-->
+    <bean id="emp2" class="com.atguigu.spring5.insidebean.Emp">
+        <property name="ename" value="Mike"/>
+        <property name="gender" value="男"/>
+        <!-- 需要先注入Dept类-->
+        <property name="dept" ref="dept2"/>
+        <!-- 然后通过Emp提供的getDept方法，得到Dept对象-->
+        <property name="dept.dname" value="技术部"/>
+    </bean>
+    <bean id="dept2" class="com.atguigu.spring5.insidebean.Dept"/>
 </beans>
