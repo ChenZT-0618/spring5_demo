@@ -1,7 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:p="http://www.springframework.org/schema/p"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
     <!--配置User对象-->
-    <bean id="user" class="com.atguigu.spring5.User"></bean>
+    <bean id="user" class="com.atguigu.spring5.User"/>
+
+    <bean id="book" class="com.atguigu.spring5.Book" p:bname="cnd" p:bauthor="hhh">
+        <!--使用有参构造方法进行属性注入-->
+        <constructor-arg name="bname" value="abc"/>
+        <constructor-arg name="bauthor" value="china"/>
+        <!--    &lt;!&ndash;使用set方法进行属性注入，这个会覆盖有参构造的值&ndash;&gt;
+            <property name="bname" value="高等数学"/>
+            <property name="bauthor" value="高等教育出版社"/>-->
+    </bean>
 </beans>
