@@ -2,11 +2,16 @@ package com.atguigu.spring5.test;
 
 import com.atguigu.spring5.Book;
 import com.atguigu.spring5.User;
+import com.atguigu.spring5.collectionbean.Course;
+import com.atguigu.spring5.collectionbean.Student;
 import com.atguigu.spring5.insidebean.Emp;
+import com.atguigu.spring5.lifecycle.Order;
 import com.atguigu.spring5.outsidebean.UserService;
 import org.junit.Test;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
+
+import java.util.Arrays;
 
 public class testSpring5 {
     @Test
@@ -39,6 +44,44 @@ public class testSpring5 {
     public void testEmp(){
         ApplicationContext context = new FileSystemXmlApplicationContext("config.xml");
         Emp emp = context.getBean("emp2",Emp.class);
+        Emp emp2 = context.getBean("emp2",Emp.class);
         emp.print();
+        System.out.println(emp); // com.atguigu.spring5.insidebean.Emp@70a9f84e
+        System.out.println(emp2); // com.atguigu.spring5.insidebean.Emp@70a9f84e
     }
+
+    @Test
+    public void testStu(){
+        ApplicationContext context = new FileSystemXmlApplicationContext("config.xml");
+        Student stu = context.getBean("student", Student.class);
+        System.out.println(Arrays.toString(stu.getCourses()));
+        System.out.println(stu.getList());
+        System.out.println(stu.getMap());
+        System.out.println(stu.getSet());
+        System.out.println(stu.getCourseList());
+    }
+
+    @Test
+    public void testFactoryBean(){
+        ApplicationContext context = new FileSystemXmlApplicationContext("config.xml");
+        Course course = context.getBean("mybean", Course.class);
+        Course course2 = context.getBean("mybean", Course.class);
+
+        System.out.println(course);
+        System.out.println(course2);
+
+
+    }
+
+    @Test
+    public void testLifeCycle(){
+        ApplicationContext context = new FileSystemXmlApplicationContext("config.xml");
+        Order order = context.getBean("order", Order.class);
+        System.out.println("第四步 获取创建bean实例对象");
+        System.out.println(order);
+        // 手动销毁
+        ((FileSystemXmlApplicationContext)context).close();
+    }
+
+
 }

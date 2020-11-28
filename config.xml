@@ -2,7 +2,9 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns:p="http://www.springframework.org/schema/p"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
     <!--配置User对象-->
     <bean id="user" class="com.atguigu.spring5.User"/>
 
@@ -51,4 +53,71 @@
         <property name="dept.dname" value="技术部"/>
     </bean>
     <bean id="dept2" class="com.atguigu.spring5.insidebean.Dept"/>
+
+    <util:list id="courseList">
+        <value>张三</value>
+        <value>小三</value>
+    </util:list>
+
+    <!-- 注入集合类型属性-->
+    <bean id="student" class="com.atguigu.spring5.collectionbean.Student">
+        <!-- 数组类型-->
+        <property name="courses">
+            <array>
+                <value>语文</value>
+                <value>数学</value>
+                <value>英语</value>
+            </array>
+        </property>
+        <!-- list类型-->
+        <property name="list" ref="courseList">
+            <!--            <list>-->
+            <!--                <value>张三</value>-->
+            <!--                <value>小三</value>-->
+            <!--            </list>-->
+        </property>
+        <!-- map类型-->
+        <property name="map">
+            <map>
+                <entry key="JAVA" value="java"/>
+                <entry key="PHP" value="php"/>
+            </map>
+        </property>
+        <!-- set类型赋值-->
+        <property name="set">
+            <set>
+                <value>MySQL</value>
+                <value>Redis</value>
+            </set>
+        </property>
+        <!-- List类型赋值，但是值是对象-->
+        <property name="courseList">
+            <list>
+                <ref bean="course1"/>
+                <ref bean="course2"/>
+            </list>
+        </property>
+    </bean>
+    <!-- 创建多个course对象 -->
+    <bean id="course1" class="com.atguigu.spring5.collectionbean.Course">
+        <property name="cname" value="政治"/>
+    </bean>
+    <bean id="course2" class="com.atguigu.spring5.collectionbean.Course">
+        <property name="cname" value="历史"/>
+    </bean>
+
+
+    <!--工厂bean-->
+    <bean id="mybean" class="com.atguigu.spring5.factorybean.MyBean" />
+
+    <!--bean生命周期-->
+    <bean id="order" class="com.atguigu.spring5.lifecycle.Order"
+          init-method="initMethod"
+          destroy-method="destroyMethod">
+        <property name="oname" value="手机"/>
+    </bean>
+
+    <!--后置处理器，添加之后上面所有bean都会认为添加了后置处理器-->
+    <bean id="myPostBean" class="com.atguigu.spring5.lifecycle.myPostProcessor"/>
+
 </beans>
