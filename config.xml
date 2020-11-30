@@ -118,6 +118,14 @@
     </bean>
 
     <!--后置处理器，添加之后上面所有bean都会认为添加了后置处理器-->
-    <bean id="myPostBean" class="com.atguigu.spring5.lifecycle.myPostProcessor"/>
+<!--    <bean id="myPostBean" class="com.atguigu.spring5.lifecycle.myPostProcessor"/>-->
 
+    <!--自动装配
+        bean 标签属性 autowire，配置自动装配
+        autowire 属性常用两个值：
+            byName 根据属性名称注入 ，注入值 bean 的 id 值和类属性名称一样
+            byType 根据属性类型注入
+    -->
+    <bean id="emp_a" class="com.atguigu.spring5.autowire.Emp" autowire="byName"/>
+    <bean id="dept_a" class="com.atguigu.spring5.autowire.Dept"/>
 </beans>

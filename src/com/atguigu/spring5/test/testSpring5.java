@@ -83,5 +83,12 @@ public class testSpring5 {
         ((FileSystemXmlApplicationContext)context).close();
     }
 
+    @Test
+    public void testAutoWire(){
+        ApplicationContext context = new FileSystemXmlApplicationContext("config.xml");
+        com.atguigu.spring5.autowire.Emp emp = context.getBean("emp_a", com.atguigu.spring5.autowire.Emp.class);
+
+        System.out.println(emp);
+    }
 
 }
