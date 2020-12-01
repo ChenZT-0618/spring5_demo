@@ -567,3 +567,272 @@ public class Emp {
 ### Bean管理：引入外部文件
 
 直接配置数据库信息
+
+
+
+
+
+### bean管理：基于注解实现
+
+使用注解目的：简化 xml 配置
+
+#### 基于注解方式创建对象
+
+- @Component
+- @Service：业务逻辑层
+- @Controller：一般用在web层上
+- @Repository：用在DAO层
+
+上面四个注解功能是一样的，都可以用来创建 bean 实例
+
+##### 操作步骤
+
+1. 引入依赖：AOP：spring-aop-5.2.6.RELEASE.jar
+
+2. 开启组件扫描
+
+   1. 引入命名空间：xmlns:context="http://www.springframework.org/schema/context"
+   2. 开启组件扫描：<context:component-scan base-package="com.atguigu.spring5.annotation"/>
+
+   ```xml
+   <?xml version="1.0" encoding="UTF-8"?>
+   <beans xmlns="http://www.springframework.org/schema/beans"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xmlns:context="http://www.springframework.org/schema/context"
+          xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
+   
+       <!--
+           开启组件扫描
+           1 如果扫描多个包，多个包使用逗号隔开
+           2 或者扫描包上层目录
+       -->
+       <context:component-scan base-package="com.atguigu.spring5.annotation"/>
+   </beans>
+   ```
+
+3. 创建类，在类上面添加创建对象注解
+
+   ```Java
+   //在注解里面value属性值等同于bean中的id值，在这可以省略不写，
+   //默认值是类名称，首字母小写：UserService -- userService
+   @Component(value = "abc")
+   public class UserService {
+       public void add() {
+           System.out.println("service add......");
+       }
+   }
+   ```
+
+##### 开启组件扫描细节配置
+
+- use-default-filters = "false"  ：不使用默认过滤器，扫描内容自己配置
+
+  - context:include-filter：设置扫描哪些内容
+
+  ```xml
+  <context:component-scan base-package="com.atguigu.spring5.annotation" use-default-filters="false">
+      <!--表示扫描Component类型的注解-->
+      <context:include-filter type="annotation" expression="org.springframework.stereotype.Component"/>
+  </context:component-scan>
+  ```
+
+- context:exclude-filter：设置哪些内容不进行扫描
+
+  ```xml
+  <context:component-scan base-package="com.atguigu.spring5.annotation">
+      <!--扫描所有，但是不扫描Controller类型的注解-->
+      <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+  </context:component-scan>
+  ```
+
+#### 基于注解方式注入属性
+
+- @Autowired：根据属性类型进行自动装配，**只针对只有一个实现类的属性**
+
+  ```Java
+  @Repository(value = "userDaoImpl")
+  public class UserDaoImpl implements UserDao {
+      @Override
+      public void add() {
+          System.out.println("dao add........");
+      }
+  }
+  ```
+
+  ```Java
+  @Service
+  public class UserService {
+      @Autowired
+      private UserDao userDao;
+  
+      public void add() {
+          System.out.println("service add......");
+          userDao.add();
+      }
+  }
+  ```
+
+- @Qualifier：根据属性名称进行注入，需要配合Autowired使用，**可以实现有多个实现类的属性的注入**
+
+  - @Autowired负责对应属性类型，@Qualifier负责对应的实现类
+  - @Qualifier的value值就是某个实现类的类名
+
+  ```Java
+  @Service
+  public class UserService {
+      @Autowired
+      @Qualifier(value = "userDaoImpl") // 要跟它的value相同：@Repository(value = "userDaoImpl")
+      private UserDao userDao;
+  
+      public void add() {
+          System.out.println("service add......");
+          userDao.add();
+      }
+  }
+  ```
+
+- @Resource：可以根据类型注入，可以根据名称注入
+
+  - Autowired+Qualifier可以找到对应的一个类，或者使用Resource注解也可以
+  - 注：@Resource是在javax.annotation.Resource中，是JavaEE提供的，在JDK11中就没有了。
+
+  ```Java
+  @Service
+  public class UserService {
+  	// 可以认为是类型+名称，即@Autowired + @Qualifier；不加name就是@Autowired
+      @Resource(name = "userDaoImpl")
+      private UserDao userDao;
+  
+      public void add() {
+          System.out.println("service add......");
+          userDao.add();
+      }
+  }
+  ```
+
+  
+
+- @Value：注入普通类型属性
+
+
+
+## AOP：面向切面编程
+
+### AOP概念
+
+面向切面编程（方面），利用AOP可以对业务逻辑的各个部分进行隔离，从而使得业务逻辑各部分之间的耦合度降低，提高程序的可重用性，同时提高了开发的效率。
+
+**通俗描述**：不通过修改源代码方式，在主干功能里面添加新功能
+
+**举例说明：**
+
+在原本的登录流程中，如果你想添加“权限判断”的功能，使用AOP的话就是先写好该功能的代码（函数，类），然后通过配置把它加到主流程中，也可以通过配置方式取消该功能。
+
+![](./AOP例子.png)
+
+### 底层原理：动态代理
+
+#### 代理设计模式原理
+
+使用一个代理将对象包装起来, 然后用该代理对象取代原始对象。
+
+**任何对原始对象的调用都要通过代理**。代理对象决定是否以及何时将方法调用转到原始对象上。
+
+动态代理是指客户通过代理类来调用其它对象的方法，**并且是在程序运行时根据需要动态创建目标类的代理对象。**
+
+#### Java 动态关代理相关API
+
+**Proxy** ：专门完成代理的操作类，是所有动态代理类的父类。通过此类为一个或多个接口动态地生成实现类。
+
+**InvocationHandler**：用于实现代理类中调用被代理类的同名方法
+
+#### 动态代理步骤
+
+实现动态代理要解决的两个问题
+
+ * 如何根据加载到内存中的被代理类，动态的创建一个代理类及其对象——使用 Proxy 这个类
+ * 如何通过代理类的对象调用被代理类的同名方法——使用 InvocationHandler 这个接口
+
+```Java
+package DesignPattern.Proxy.dynamicproxy;
+
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+
+
+/**
+ * @author ChenZT
+ */
+
+interface Human {
+    String getBelief();
+
+    void eat(String food);
+}
+
+// 被代理类
+class SuperMan implements Human {
+
+    @Override
+    public String getBelief() {
+        return "I believe I can fly!";
+    }
+
+    @Override
+    public void eat(String food) {
+        System.out.println("我喜欢吃：" + food);
+    }
+}
+
+
+/*
+ * 想要实现动态代理，需要解决的问题？
+ * 一：如何根据加载到内存中的被代理类，动态的创建一个代理类及其对象
+ * 二：如何通过代理类的对象调用被代理类的同名方法
+ * */
+class ProxyFactory {
+    // 解决问题一
+    // 输入参数：obj 被代理类
+    // 返回值：代理类对象
+    public static Object getProxyInstance(Object obj) {
+        MyInvocationHandler handler = new MyInvocationHandler();
+        handler.bind(obj);
+        // 三个参数：被代理类的加载器，被代理类的实现接口，InvocationHandler的实现类对象
+        return Proxy.newProxyInstance(obj.getClass().getClassLoader(), obj.getClass().getInterfaces(), handler);
+    }
+}
+
+class MyInvocationHandler implements InvocationHandler {
+    private Object obj;
+
+    public void bind(Object obj) {
+        this.obj = obj;
+    }
+
+    /**
+     * 调用代理类的同名方法
+     *
+     * @param proxy  代理类对象
+     * @param method 接口中的要调用的同名方法
+     * @param args   调用方法的参数
+     * @return 调用方法的返回值
+     */
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        //那添加的其他功能的代码写在这里
+        return method.invoke(obj, args);
+    }
+}
+
+
+public class DynamicProxyTest {
+    public static void main(String[] args) {
+        SuperMan superMan = new SuperMan();
+        Human instance = (Human) ProxyFactory.getProxyInstance(superMan);
+        System.out.println(instance.getBelief());
+        instance.eat("海底捞");
+    }
+}
+```
+
