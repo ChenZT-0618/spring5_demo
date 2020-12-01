@@ -857,11 +857,6 @@ public class DynamicProxyTest {
 
 Spring框架一般基于**AspectJ**实现AOP操作，AspectJ不是Spring组成部分，而是独立AOP框架，一般把AspectJ和Spirng框架一起使用，进行AOP操作
 
-基于AspectJ实现AOP操作
-
-- 基于xml文件
-- 基于注解
-
 引入 AOP 相关依赖
 
 - spring-aspects-5.2.6.RELEASE
@@ -877,3 +872,165 @@ Spring框架一般基于**AspectJ**实现AOP操作，AspectJ不是Spring组成�
   - 对 com.atguigu.dao.BookDao 类里面的 add 进行增强： execution(* com.atguigu.dao.BookDao.add(..))
   - 对 com.atguigu.dao.BookDao 类里面的所有的方法进行增强：execution(* com.atguigu.dao.BookDao.* (..))
   - 对 com.atguigu.dao 包里面所有类，类里面所有方法进行增强：execution(* com.atguigu.dao.*.* (..))
+
+### 基于AspectJ实现AOP操作
+
+#### 基于注解
+
+1、创建类，在里面定义方法，创建增强类
+
+2、通知配置
+
+- 添加命名空间，开启注解扫描和生成代理对象
+
+  ```xml
+  <?xml version="1.0" encoding="UTF-8"?>
+  <beans xmlns="http://www.springframework.org/schema/beans"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns:context="http://www.springframework.org/schema/context"
+         xmlns:aop="http://www.springframework.org/schema/aop"
+         xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                             http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+                             http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd">
+  
+      <!-- 开启注解扫描   -->
+      <context:component-scan base-package="com.atguigu.spring5.aop.annotation"/>
+      <!-- 开启 Aspect 生成代理对象-->
+      <aop:aspectj-autoproxy/>
+  
+  </beans>
+  ```
+
+- 使用注解创建User和UserProxy对象，同时在增强类上面添加注解@Aspect
+
+  ```java
+  // 被增强类，被代理类
+  @Component
+  public class User {
+      public void add(){
+          System.out.println("add...........");
+      }
+  
+      public void min(){
+          System.out.println("min...........");
+      }
+  }
+  
+  // 增强类，代理类
+  @Component
+  @Aspect //生成代理对象
+  public class UserProxy {
+  	
+      
+  	//@Before 注解表示作为前置通知
+      @Before(value = "execution(* com.atguigu.spring5.aop.annotation.User.add(..))")
+      public void before(){
+          System.out.println("before.........");
+      }
+      
+  	// 后置通知，更像最终通知
+      @After(value = "execution(* com.atguigu.spring5.aop.annotation.User.add(..))")
+      public void after(){
+          System.out.println("after..................");
+      }
+  
+      //环绕通知
+      @Around(value = "execution(* com.atguigu.spring5.aop.annotation.User.min(..))")
+      public void around(ProceedingJoinPoint joinPoint){
+          try {
+              System.out.println("环绕前......................");
+              joinPoint.proceed();
+              System.out.println("环绕后......................");
+          } catch (Throwable throwable) {
+              throwable.printStackTrace();
+          }
+  
+      }
+  }
+  ```
+
+- 其他通知类型注解：
+
+  - @After：最终通知，出现异常也会执行
+  - @AfterReturning：后置通知，执行完被代理类的方法后才通知
+  - @AfterThrowing：异常通知，在被代理类的方法出现异常时执行
+
+3、切入点表达式抽取：将相同的execution语句提取出来
+
+```java
+// 相同切入点提取
+@Pointcut(value = "execution(* com.atguigu.spring5.aop.annotation.User.add(..))")
+public void pointExecution(){
+    // 可以不写代码，表示execution路径
+}
+
+@Before(value = "pointExecution()")
+public void before(){
+    System.out.println("before.........");
+}
+```
+
+4、有多个增强类多同一个方法进行增强，设置增强类优先级
+
+在增强类上面添加注解 @Order(数字类型值)，数字类型值越小优先级越高
+
+```java
+@Component
+@Aspect
+@Order(1)
+public class UserProxy {
+    // .....
+}
+```
+
+#### 基于xml文件
+
+创建完被代理类和增强类之后，就可以直接在xml配置文件中进行配置了。
+
+1. 创建bean对象
+2. 进行aop增强配置
+   1. 选择切入点：就是要增强（被代理类）的方法
+   2. 切面：选择增强类
+   3. 选择增强类中的具体方法
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!-- 创建对象-->
+    <bean id="book" class="com.atguigu.spring5.aop.xml.Book"/>
+    <bean id="bookProxy" class="com.atguigu.spring5.aop.xml.BookProxy"/>
+
+    <!--  配置aop增强-->
+    <aop:config>
+        <!-- 切入点 -->
+        <aop:pointcut id="p" expression="execution(* com.atguigu.spring5.aop.xml.Book.buy(..))"/>
+        <!-- 切面-->
+        <aop:aspect ref="bookProxy">
+            <!-- 增强作用在具体方法上-->
+            <aop:before method="before" pointcut-ref="p"/>
+            <aop:after-returning method="after" pointcut-ref="p"/>
+        </aop:aspect>
+    </aop:config>
+</beans>
+```
+
+#### 完全使用注解开发
+
+关键一步：创建配置类，用该类来替代xml文件
+
+- @ComponentScan：表示
+  - <context:component-scan base-package="com.atguigu.spring5.aop.annotation"/>
+- @EnableAspectJAutoProxy(proxyTargetClass = true)：表示
+  - \<aop:aspectj-autoproxy/>
+
+```java
+@Configurable
+@ComponentScan(basePackages = {"com.atguigu.spring5.aop"})
+@EnableAspectJAutoProxy(proxyTargetClass = true)
+public class config {
+}
+```
+
