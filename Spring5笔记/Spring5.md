@@ -750,8 +750,8 @@ public class Emp {
 
 实现动态代理要解决的两个问题
 
- * 如何根据加载到内存中的被代理类，动态的创建一个代理类及其对象——使用 Proxy 这个类
- * 如何通过代理类的对象调用被代理类的同名方法——使用 InvocationHandler 这个接口
+ * 如何根据加载到内存中的被代理类，动态的创建一个代理类及其对象——使用 java.lang.reflect.Proxy 这个类
+ * 如何通过代理类的对象调用被代理类的同名方法——使用 InvocationHandler 这个接口，被代理类的增强方法在这里实现
 
 ```Java
 package DesignPattern.Proxy.dynamicproxy;
@@ -836,3 +836,44 @@ public class DynamicProxyTest {
 }
 ```
 
+### AOP术语
+
+连接点：类中哪些方法**理论上**可以被增强，这些方法称为连接点
+
+切入点：**实际上**被真正增强的方法，称为切入点
+
+通知（增强）：添加的新代码或者功能
+
+- 通知的类型
+  - 前置通知：在原方法前执行
+  - 后置通知：在原方法后执行
+  - 环绕通知：在原方法前后都执行
+  - 异常通知：原方法出现异常执行，类似try/catch
+  - 最终通知：有误异常都执行，类似finally
+
+切面：指通知应用到切入点的过程
+
+### AOP准备工作
+
+Spring框架一般基于**AspectJ**实现AOP操作，AspectJ不是Spring组成部分，而是独立AOP框架，一般把AspectJ和Spirng框架一起使用，进行AOP操作
+
+基于AspectJ实现AOP操作
+
+- 基于xml文件
+- 基于注解
+
+引入 AOP 相关依赖
+
+- spring-aspects-5.2.6.RELEASE
+- aspectjweaver-1.9.5
+- aopalliance-1.0
+- cglib-2.2
+
+切入点表达式
+
+- 切入点表达式作用：知道对哪个类里面的哪个方法进行增强
+- 语法结构： execution([权限修饰符] [返回类型] [类全路径] [方法名称] ([参数列表]) )
+- 举例：
+  - 对 com.atguigu.dao.BookDao 类里面的 add 进行增强： execution(* com.atguigu.dao.BookDao.add(..))
+  - 对 com.atguigu.dao.BookDao 类里面的所有的方法进行增强：execution(* com.atguigu.dao.BookDao.* (..))
+  - 对 com.atguigu.dao 包里面所有类，类里面所有方法进行增强：execution(* com.atguigu.dao.*.* (..))
