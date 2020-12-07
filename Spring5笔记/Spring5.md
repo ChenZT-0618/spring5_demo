@@ -877,3 +877,135 @@ Spring框架一般基于**AspectJ**实现AOP操作，AspectJ不是Spring组成�
   - 对 com.atguigu.dao.BookDao 类里面的 add 进行增强： execution(* com.atguigu.dao.BookDao.add(..))
   - 对 com.atguigu.dao.BookDao 类里面的所有的方法进行增强：execution(* com.atguigu.dao.BookDao.* (..))
   - 对 com.atguigu.dao 包里面所有类，类里面所有方法进行增强：execution(* com.atguigu.dao.*.* (..))
+
+## JDBC Template
+
+Spring 框架对 JDBC 进行封装，使用 JdbcTemplate 方便实现对数据库操作
+
+### 准备工作
+
+- 引入相关jar包
+
+  - 德鲁伊连接池：druid-1.1.9.jar
+  - mysql：mysql-connector-java-8.0.20.jar
+  - spring-jdbc-5.2.6.RELEASE.jar
+  - spring-tx-5.2.6.RELEASE.jar
+  - spring-orm-5.2.6.RELEASE.jar
+
+- 在spring配置文件配置数据库连接池
+
+  ```xml
+  <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource" destroy-method="close">
+      <property name="url" value="jdbc:mysql://localhost:3306/myemployees?serverTimezone=UTC"/>
+      <property name="username" value="root"/>
+      <property name="password" value="......"/>
+      <property name="driverClassName" value="com.mysql.cj.jdbc.Driver"/>
+  </bean>
+  ```
+
+- 配置 JdbcTemplate 对象，注入 DataSource
+
+  ```xml
+  <bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+      <property name="dataSource" ref="dataSource"/>
+  </bean>
+  ```
+
+- 创建 service 类，创建 dao 类，在 dao 注入 jdbcTemplate 对象
+
+  service注入dao，daoImpl注入jdbcTemplate 
+
+  ```Java
+  public interface EmployeeDao {
+      public void print();
+  }
+  
+  @Repository
+  public class EmployeeDaoImpl implements EmployeeDao {
+  
+      @Autowired
+      private JdbcTemplate jdbcTemplate;
+  
+      @Override
+      public void print() {
+          System.out.println("helloworld");
+      }
+  }
+  
+  @Service
+  public class EmployeeService {
+      @Autowired
+      @Qualifier(value = "EmployeeDaoImpl")
+      private EmployeeDao employeeDao;
+  }
+  
+  ```
+
+### JDBC操作：添加
+
+一、一个表创建一个对应类
+
+```Java
+public class Job {
+    private String job_id;
+    private String job_title;
+    private int min_salary;
+    private int max_salary;
+    
+    // setter getter 方法
+}
+```
+
+二、编写service、dao和测试类
+
+```Java
+public interface EmployeeDao {
+	// 接口添加操作
+    void add(Job job);
+}
+
+@Repository
+public class EmployeeDaoImpl implements EmployeeDao {
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    // 实现添加操作
+    @Override
+    public void add(Job job) {
+        // 创建sql语句
+        String sql = "insert into jobs values (?,?,?,?)";
+        // 参数
+        Object[] args = {job.getJob_id(), job.getJob_title(), job.getMin_salary(), job.getMax_salary()};
+        // 用JdbcTemplate完成添加操作
+        int update = jdbcTemplate.update(sql, args);
+        System.out.println(update);
+    }
+}
+
+@Service
+public class EmployeeService {
+    @Autowired
+    private EmployeeDao employeeDao;
+	
+    // service添加方法就调用DAO的add方法
+    public void add(Job job) {
+        employeeDao.add(job);
+    }
+}
+
+// 测试类
+public class testJdbcTemplate {
+    @Test
+    public void testAdd() {
+        ApplicationContext context = new FileSystemXmlApplicationContext("JDBCConfig.xml");
+        EmployeeService service = context.getBean("employeeService", EmployeeService.class);
+        Job job = new Job();
+        job.setJob_id("ST_MAN2");
+        job.setJob_title("Stock Manager2");
+        job.setMin_salary(2000);
+        job.setMax_salary(3000);
+        service.add(job);
+    }
+}
+```
