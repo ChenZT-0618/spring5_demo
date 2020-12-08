@@ -1009,3 +1009,128 @@ public class testJdbcTemplate {
     }
 }
 ```
+
+### JDBC操作：修改&删除
+
+```java
+@Override
+public void updateJob(Job newJob) {
+    String sql = "update jobs set job_title=?,min_salary=?,max_salary=? where job_id = ?";
+    Object[] args = {newJob.getJob_title(),newJob.getMin_salary(), newJob.getMax_salary(),newJob.getJob_id()};
+    int update = jdbcTemplate.update(sql, args);
+    System.out.println(update);
+
+}
+
+@Override
+public void deleteJob(String job_id) {
+    String sql = "delete from jobs where job_id =?";
+    int update = jdbcTemplate.update(sql, job_id);
+    System.out.println(update);
+}
+```
+
+### JDBC操作：查询
+
+#### 返回某个值
+
+```java
+@Override
+public int count() {
+    String sql = "select count(*) from jobs";
+    // 参数1：sql语句；参数2：返回类型的类
+    return jdbcTemplate.queryForObject(sql, Integer.class);
+}
+```
+
+#### 返回对象
+
+语句：queryForObject(String sql, RowMapper<T> rowMapper, @Nullable Object... args)
+
+有三个参数
+
+- sql 语句
+- RowMapper ：接口，针对返回不同类型数据，使用这个接口里面实现类完成数据封装
+- sql 语句值
+
+```java
+@Override
+public Job findJobInfo(String id) {
+    String sql = "select * from jobs where job_id =?";
+    // 三个参数：sql语句，RowMapper接口，参数
+    return jdbcTemplate.queryForObject(sql,new BeanPropertyRowMapper<Job>(Job.class),id);
+}
+```
+
+#### 返回集合
+
+语句： List<T> query(String sql, RowMapper<T> rowMapper) 
+
+有三个参数
+
+- sql 语句
+- RowMapper ：接口，针对返回不同类型数据，使用这个接口里面实现类完成数据封装
+- sql 语句值
+
+```java
+@Override
+public List<Job> findAll() {
+    String sql = "select * from jobs";
+    return jdbcTemplate.query(sql,new BeanPropertyRowMapper<Job>(Job.class));
+}
+```
+
+### JDBC操作：批量操作
+
+#### 批量添加
+
+语句： int[] batchUpdate(String sql, List<Object[]> batchArgs) 
+
+有两个参数
+
+- sql：sql 语句
+- batchArgs：List 集合，添加多条记录数据
+- 返回值：集合里面每个操作影响的行数
+
+```java
+@Override
+public void batchAdd(List<Object[]> batchArgs) {
+    String sql = "insert into jobs values(?,?,?,?)";
+    int[] ints = jdbcTemplate.batchUpdate(sql, batchArgs);
+    System.out.println(ints);
+}
+```
+
+底层做法：把batchArgs集合进行遍历，对里面的每个数据执行sql语句
+
+```java
+// 批量添加测试
+List<Object[]> batchArgs = new ArrayList<>();
+Object[] o1 = { "3", "java", "a"};
+Object[] o2 = { "4", "c++", "b"};
+Object[] o3 = { "5", "MySQL", "c"};
+batchArgs.add(o1);
+batchArgs.add(o2);
+batchArgs.add(o3);
+//调用批量添加
+bookService.batchAdd(batchArgs);
+```
+
+批量修改&删除操作同理，改下sql语句即可
+
+```java
+@Override
+public void batchUpdateBook(List<Object[]> batchArgs) {
+    String sql = "update t_book set username=?,ustatus=? where user_id=?";
+    int[] ints = jdbcTemplate.batchUpdate(sql, batchArgs);
+    System. out .println(Arrays. toString (ints));
+}
+
+@Override
+public void batchDeleteBook(List<Object[]> batchArgs) {
+    String sql = "delete from t_book where user_id=?";
+    int[] ints = jdbcTemplate.batchUpdate(sql, batchArgs);
+    System. out .println(Arrays. toString (ints));
+}
+```
+
