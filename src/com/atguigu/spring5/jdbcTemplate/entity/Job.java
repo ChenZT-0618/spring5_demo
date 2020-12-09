@@ -40,4 +40,14 @@ public class Job {
     public void setMax_salary(int max_salary) {
         this.max_salary = max_salary;
     }
+
+    @Override
+    public String toString() {
+        return "Job{" +
+                "job_id='" + job_id + '\'' +
+                ", job_title='" + job_title + '\'' +
+                ", min_salary=" + min_salary +
+                ", max_salary=" + max_salary +
+                '}';
+    }
 }
