@@ -1134,3 +1134,223 @@ public void batchDeleteBook(List<Object[]> batchArgs) {
 }
 ```
 
+## 事务操作
+
+事务是数据库操作最基本单元，逻辑上一组操作，要么都成功，如果有一个失败所有操作都失败
+
+典型场景：银行转账——必须一个人钱多，一个人钱少
+
+* lucy 转账 100 元 给 mary
+* lucy 少 100，mary 多 100
+
+特性：ACID atomic consistency isolation duration
+
+- 原子性：不可拆分
+- 一致性：操作前后总量不变
+- 隔离性：操作不受影响
+- 持久性：提交之后 表中的数据就会发生变化
+
+### 环境搭建
+
+![](./事务环境搭建.png)
+
+- 创建数据库表，添加记录
+
+- 创建 service ，搭建 dao，完成对象创建和注入关系
+
+  - service 注入 dao，在 dao 注入 JdbcTemplate，在 JdbcTemplate 注入 DataSource
+
+-  在 dao 创建两个方法：多钱和少钱的方法，在 service 创建转账的方法
+
+  ```java
+  @Service
+  public class UserService {
+      // 注入DAO
+      @Autowired
+      private UserDao userDao;
+  
+  
+      //转账的方法
+      public void accountMoney() {
+          //lucy 少 100
+          userDao.reduceMoney();
+          //mary 多 100
+          userDao.addMoney();
+      }
+  }
+  
+  @Repository
+  public class UserDaoImpl implements UserDao {
+      @Autowired
+      private JdbcTemplate jdbcTemplate;
+  
+      // 少钱的方法
+      public void reduceMoney() {
+          String sql = "update account set money=money-? where username=?";
+          jdbcTemplate.update(sql, 100, "Lucy");
+      }
+  
+      // 多钱的方法
+      @Override
+      public void addMoney() {
+          String sql = "update account set money=money+? where username=?";
+          jdbcTemplate.update(sql, 100, "Mary");
+      }
+  }
+  ```
+
+- 引入事务场景
+
+  - 上面的代码如果执行出现错误，那么执行结果就会出现问题
+  - 如下代码，结果是lucy减少了100，但是mary没有增加100。
+
+  ```java
+  public void accountMoney() {
+      //lucy 少 100
+      userDao.reduceMoney();
+  
+      // 引入错误
+      int i = 10 / 0;
+      
+      //mary 多 100
+      userDao.addMoney();
+  }
+  ```
+
+  - 解决方法：使用事务进行解决
+  - 事务过程：开启事务——进行业务操作（try/catch）——没有发生异常，提交事务——出现异常，进行回滚
+
+### Spring 事务管理介绍
+
+- 事务添加到 JavaEE 三层结构里面 Service 层（业务逻辑层）
+- 在 Spring 进行事务管理操作
+  - 编程式事务管理：类似面向过程编程，每一步做啥都用代码写出来
+  - 声明式事务管理（使用） 
+    - **基于注解方式（使用）**
+    - 基于 xml 配置文件方式
+- 在 Spring 进行声明式事务管理，底层使用 AOP 原理
+
+- Spring 事务管理 API
+
+  - 提供一个接口，代表事务管理器，这个接口针对不同的框架提供不同的实现类,\
+  - 针对数据库提供的模板是DataSourceTransactionManager类
+
+  ![](./事务API.png)
+
+  
+
+### 事务管理——注解方式
+
+在 spring 配置文件配置事务管理器
+
+在 spring 配置文件，开启事务注解
+
+- 引入命名空间 tx
+- 开启事务注解
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+                           http://www.springframework.org/schema/tx https://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <context:component-scan base-package="com.atguigu.spring5.transaction"/>
+    <!-- 数据库连接池 -->
+    <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource" destroy-method="close">
+        <property name="url" value="jdbc:mysql://localhost:3306/myemployees?serverTimezone=UTC"/>
+        <property name="username" value="root"/>
+        <property name="password" value="imissyou,./24"/>
+        <property name="driverClassName" value="com.mysql.cj.jdbc.Driver"/>
+    </bean>
+
+    <!-- JdbcTemplate 对象 -->
+    <bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+    <!--配置事务管理器-->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <!--注入数据源-->
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+    <!--开启事务注解-->
+    <tx:annotation-driven transaction-manager="transactionManager"/>
+</beans>
+```
+
+在 service 类上面（或者 或者 service 类里面方法上面）添加事务注解
+
+- @Transactional，这个注解添加到类上面，也可以添加方法上面
+- 如果把这个注解添加类上面，这个类里面所有的方法都添加事务
+- 如果把这个注解添加方法上面，为这个方法添加事务
+
+### @Transactional属性
+
+![](./参数配置.png)
+
+- propagation：事务传播行为
+
+  - 多**事务方法**直接进行调用，这个过程中事务是如何进行管理的，**事务方法**指对数据库数据进行变化的操作方法
+  - 有事务方法调用没事务的方法，或者没事务的方法调用有事务的方法，事务要怎么操作——这就是事务的传播行为
+  - 传播行为有7种：在枚举类Propagation中
+    - REQUIRED（默认）：如果当前没有事务，就新建一个事务，如果已经存在一个事务中，加入到这个事务中。这是最常见的选择。
+    - REQUIRES_NEW：新建事务，如果当前存在事务，把当前事务挂起。
+    - SUPPORTS：支持当前事务，如果当前没有事务，就以非事务方式执行。
+    - NOT_SUPPORTED：以非事务方式执行操作，如果当前存在事务，就把当前事务挂起。
+    - MANDATORY：使用当前的事务，如果当前没有事务，就抛出异常。
+    - NEVER：以非事务方式执行，如果当前存在事务，则抛出异常。
+    - NESTED：如果当前存在事务，则在嵌套事务内执行。如果当前没有事务，则执行与PROPAGATION_REQUIRED类似的操作。
+
+- ioslation：事务隔离级别，不同太操心
+
+  - 指一个事务对数据的修改与另一个并行的事务的隔离程度，当多个事务同时访问相同数据时，如果没有采取必要的隔离机制，就可能发生以下问题：
+
+  - 脏读、不可重复读、虚（幻）读
+
+    - 脏读：一个未提交事务读取到另一个未提交事务的数据
+
+    ```
+    张三的工资为5000,事务A中把他的工资改为8000,但事务A尚未提交。与此同时，事务B正在读取张三的工资，读取到张三的工资为8000。随后，事务A发生异常，而回滚了事务。张三的工资又回滚为5000。最后，事务B读取到的张三工资为8000的数据即为脏数据，事务B做了一次脏读。
+    ```
+
+    - 不可重复读：一个未提交事务读取到另一提交事务修改数据
+
+    ```
+    在事务A中，读取到张三的工资为5000，操作没有完成，事务还没提交。 
+    与此同时，事务B把张三的工资改为8000，并提交了事务。随后，在事务A中，再次读取张三的工资，此时工资变为8000。
+    在一个事务中前后两次读取的结果并不一致，导致了不可重复读。
+    ```
+
+    - 虚读：一个未提交事务读取到另一提交事务添加数据
+
+    ```
+    A目前工资为5000的员工有10人，事务A读取所有工资为5000的人数为10人。此时，事务B插入一条工资也为5000的记录。这是，事务A再次读取工资为5000的员工，记录为11人。此时产生了幻读。
+    ```
+
+  - 解决：通过设置事务隔离级别，解决读问题
+
+    - DEFAULT：使用数据库本身使用的隔离级别 ORACLE（读已提交） MySQL（可重复读）
+    - READ_UNCOMITTED：读未提交（脏读）最低的隔离级别，一切皆有可能。
+    - READ_COMMITED：读已提交，ORACLE默认隔离级别，有幻读以及不可重复读风险。
+    - REPEATABLE_READ：可重复读，解决不可重复读的隔离级别，但还是有幻读风险。
+    - SERIALIZABLE：串行化，最高隔离级别，杜绝一切隐患，缺点是效率低。
+
+- timeout：超时时间
+
+  - 事务需要在一定时间内进行提交，如果不提交进行回滚
+  - 默认值是 -1 ，设置时间以秒单位进行计算
+
+- readOnly：是否只读
+
+  - 读：查询操作，写：添加修改删除操作
+  - readOnly 默认值 false，表示可以查询，可以添加修改删除操作
+  - 设置 readOnly 值是 true，设置成 true 之后，只能查询
+
+- rollbackFor：回滚——设置出现哪些异常进行事务回滚
+
+- noRollbackFor ：不回滚——设置出现哪些异常不进行事务回滚
+
