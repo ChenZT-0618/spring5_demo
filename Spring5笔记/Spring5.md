@@ -1,4 +1,4 @@
-Spring5
+# Spring5
 
 ## IOC容器
 
@@ -877,6 +877,139 @@ Spring框架一般基于**AspectJ**实现AOP操作，AspectJ不是Spring组成�
   - 对 com.atguigu.dao.BookDao 类里面的 add 进行增强： execution(* com.atguigu.dao.BookDao.add(..))
   - 对 com.atguigu.dao.BookDao 类里面的所有的方法进行增强：execution(* com.atguigu.dao.BookDao.* (..))
   - 对 com.atguigu.dao 包里面所有类，类里面所有方法进行增强：execution(* com.atguigu.dao.*.* (..))
+
+### AOP操作
+
+#### 基于注解
+
+创建类和增强类
+
+```Java
+// 被增强类，被代理类
+@Component // 创建对象的注解
+public class User {
+    public void add(){
+        System.out.println("add...........");
+    }
+
+    public void min(){
+        System.out.println("min...........");
+    }
+}
+
+// 增强类，代理类
+@Component // 创建对象的注解
+@Aspect // 生成代理对象的注解
+public class UserProxy {
+	// 增强方法
+	public void before() {
+        System.out.println("before.........");
+    }
+}
+```
+
+在配置文件中开启注解扫描，开启生成代理对象——要引入两个命名空间：context和aop
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+                           http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd">
+
+    <!-- 开启注解扫描   -->
+    <context:component-scan base-package="com.atguigu.spring5.aop.annotation"/>
+    <!-- 开启 Aspect 生成代理对象-->
+    <aop:aspectj-autoproxy/>
+    
+</beans>
+```
+
+添加注解：代码见上
+
+配置不同类型的通知，类型见“AOP术语”
+
+```java
+@Component
+@Aspect
+@Order(1) //多个增强类多同一个方法进行增强，设置增强类优先级，数字类型值越小优先级越高
+public class UserProxy {
+
+    // 相同切入点提取
+    @Pointcut(value = "execution(* com.atguigu.spring5.aop.annotation.User.add(..))")
+    public void pointExecution() {
+        // 可以不写代码，表示execution路径
+    }
+
+	// 前置通知
+    @Before(value = "pointExecution()")
+    public void before() {
+        System.out.println("before.........");
+    }
+
+    // 最终通知
+    @After(value = "pointExecution()")
+    public void after() {
+        System.out.println("after..................");
+    }
+//    @AfterReturning
+//    @AfterThrowing
+
+    //环绕通知
+    @Around(value = "execution(* com.atguigu.spring5.aop.annotation.User.min(..))")
+    public void around(ProceedingJoinPoint joinPoint) {
+        try {
+            System.out.println("环绕前......................");
+            joinPoint.proceed();
+            System.out.println("环绕后......................");
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+        }
+    }
+}
+
+```
+
+#### 基于xml文件
+
+流程大概一样，就是把使用注解的地方要通过配置文件实现。
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+                           http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd">
+
+    <!-- 开启注解扫描   -->
+    <context:component-scan base-package="com.atguigu.spring5.aop.annotation"/>
+    <!-- 开启 Aspect 生成代理对象-->
+    <aop:aspectj-autoproxy/>
+
+
+    <!-- 创建对象-->
+    <bean id="book" class="com.atguigu.spring5.aop.xml.Book"/>
+    <bean id="bookProxy" class="com.atguigu.spring5.aop.xml.BookProxy"/>
+
+    <!--  配置aop增强-->
+    <aop:config>
+        <!-- 切入点 -->
+        <aop:pointcut id="p" expression="execution(* com.atguigu.spring5.aop.xml.Book.buy(..))"/>
+        <!-- 切面-->
+        <aop:aspect ref="bookProxy">
+            <!-- 增强作用在具体方法上-->
+            <aop:before method="before" pointcut-ref="p"/>
+            <aop:after-returning method="after" pointcut-ref="p"/>
+        </aop:aspect>
+    </aop:config>
+</beans>
+```
 
 ## JDBC Template
 
